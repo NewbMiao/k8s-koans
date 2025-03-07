@@ -1,0 +1,156 @@
+global:
+  storageClass: standard
+  imagePullSecrets:
+    - name: test-secret
+manager:
+  enable: true
+  image:
+    repository: dragonflyoss/manager
+    tag: v2.2.1-rc.2
+  replicas: 3
+  resources:
+    requests:
+      cpu: "0"
+      memory: "0"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+  metrics:
+    enable: true
+    serviceMonitor:
+      enable: true
+    prometheusRule:
+      enable: false
+
+  config:
+    console: false
+    verbose: false
+    pprofPort: -1
+
+scheduler:
+  enable: true
+  image:
+    repository: dragonflyoss/scheduler
+    tag: v2.2.1-rc.2
+  replicas: 3
+  resources:
+    requests:
+      cpu: "0"
+      memory: "0"
+    limits:
+      cpu: "4"
+      memory: "4Gi # use 8Gi at least on production"
+  metrics:
+    enable: true
+    serviceMonitor:
+      enable: true
+    prometheusRule:
+      enable: false
+  config:
+    console: false
+    verbose: false
+    pprofPort: -1
+
+seedClient:
+  enable: true
+  image:
+    repository: dragonflyoss/client
+    tag: v0.2.17
+  replicas: 3
+  resources:
+    requests:
+      cpu: "0"
+      memory: "0"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+  persistence:
+    enable: true
+    annotations: {}
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi #10Gi for testing, use 50Gi at least in production
+    storageClass: standard
+  #collect metrics to datadog: https://docs.datadoghq.com/containers/kubernetes/prometheus/?tab=kubernetesadv2
+  podAnnotations:
+    ad.datadoghq.com/seed-client.checks: |
+      {
+        "openmetrics": {
+          "init_config": {},
+          "instances": [
+            {
+              "openmetrics_endpoint": "http://%%host%%:4002/metrics",
+              "namespace": "dragonfly",
+              "metrics": ["dragonfly*"]
+            }
+          ]
+        }
+      }
+  metrics:
+    enable: true
+    serviceMonitor:
+      enable: true
+    prometheusRule:
+      enable: false
+  config:
+    download:
+      pieceTimeout: 600s #default 30s is not suit for big image piece download
+    console: false
+    verbose: false
+
+client:
+  enable: true
+  image:
+    repository: dragonflyoss/client
+    tag: v0.2.17
+  resources:
+    requests:
+      cpu: "0"
+      memory: "0"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+  metrics:
+    enable: true
+    serviceMonitor:
+      enable: true
+    prometheusRule:
+      enable: false
+  config:
+    download:
+      pieceTimeout: 600s #default 30s is not suit for big image piece download
+    console: false
+    verbose: false
+  dfinit:
+    enable: true
+    image:
+      repository: dragonflyoss/dfinit
+      tag: v0.2.17
+    config:
+      containerRuntime:
+        containerd:
+          configPath: /etc/containerd/config.toml
+          registries:
+            - hostNamespace: docker.io
+              serverAddr: https://index.docker.io
+              capabilities: ["pull", "resolve"]
+              skipVerify: true
+redis:
+  master:
+    persistence:
+      size: 4Gi # use 8Gi at least on production
+  replica:
+    replicaCount: 1 # use 2 at least on production
+    persistence:
+      size: 4Gi # use 8Gi at least on production
+  global:
+    storageClass: standard
+mysql:
+  primary:
+    persistence:
+      size: 4Gi # use 8Gi at least on production
+  secondary:
+    persistence:
+      size: 4Gi # use 8Gi at least on production
+  global:
+    storageClass: standard
