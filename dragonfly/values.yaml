@@ -6,7 +6,7 @@ manager:
   enable: true
   image:
     repository: dragonflyoss/manager
-    tag: v2.2.1-rc.2
+    tag: v2.2.1
   replicas: 3
   resources:
     requests:
@@ -15,6 +15,8 @@ manager:
     limits:
       cpu: "2"
       memory: "4Gi"
+  nodeSelector:
+    kubernetes.io/hostname: desktop-worker
   metrics:
     enable: true
     serviceMonitor:
@@ -23,23 +25,26 @@ manager:
       enable: false
 
   config:
-    console: false
-    verbose: false
+    console: true
+    verbose: true
     pprofPort: -1
 
 scheduler:
   enable: true
   image:
     repository: dragonflyoss/scheduler
-    tag: v2.2.1-rc.2
+    tag: v2.2.1
   replicas: 3
+  nodeSelector:
+    kubernetes.io/hostname: desktop-worker
   resources:
     requests:
       cpu: "0"
       memory: "0"
     limits:
       cpu: "4"
-      memory: "4Gi # use 8Gi at least on production"
+      # use 8Gi at least on production
+      memory: "4Gi"
   metrics:
     enable: true
     serviceMonitor:
@@ -47,16 +52,22 @@ scheduler:
     prometheusRule:
       enable: false
   config:
-    console: false
-    verbose: false
+    console: true
+    verbose: true
     pprofPort: -1
+    scheduler:
+      retryBackToSourceLimit: 5
+      retryLimit: 7
+      retryInterval: 800ms
 
 seedClient:
   enable: true
   image:
     repository: dragonflyoss/client
-    tag: v0.2.17
+    tag: v0.2.19
   replicas: 3
+  nodeSelector:
+    kubernetes.io/hostname: desktop-worker
   resources:
     requests:
       cpu: "0"
@@ -95,14 +106,14 @@ seedClient:
   config:
     download:
       pieceTimeout: 600s #default 30s is not suit for big image piece download
-    console: false
-    verbose: false
+    console: true
+    verbose: true
 
 client:
   enable: true
   image:
     repository: dragonflyoss/client
-    tag: v0.2.17
+    tag: v0.2.19
   resources:
     requests:
       cpu: "0"
@@ -117,15 +128,18 @@ client:
     prometheusRule:
       enable: false
   config:
+    proxy:
+      prefetch: true
     download:
-      pieceTimeout: 600s #default 30s is not suit for big image piece download
-    console: false
-    verbose: false
+      #default 30s is not suit for big image piece download
+      pieceTimeout: 600s
+    console: true
+    verbose: true
   dfinit:
     enable: true
     image:
       repository: dragonflyoss/dfinit
-      tag: v0.2.17
+      tag: v0.2.19
     config:
       containerRuntime:
         containerd:
@@ -137,20 +151,33 @@ client:
               skipVerify: true
 redis:
   master:
+    nodeSelector:
+      kubernetes.io/hostname: desktop-worker
     persistence:
-      size: 4Gi # use 8Gi at least on production
+      # use 8Gi at least on production
+      size: 4Gi
   replica:
-    replicaCount: 1 # use 2 at least on production
+    nodeSelector:
+      kubernetes.io/hostname: desktop-worker
+    # use 2 at least on production
+    replicaCount: 1
     persistence:
-      size: 4Gi # use 8Gi at least on production
+      # use 8Gi at least on production
+      size: 4Gi
   global:
     storageClass: standard
 mysql:
   primary:
+    nodeSelector:
+      kubernetes.io/hostname: desktop-worker
     persistence:
-      size: 4Gi # use 8Gi at least on production
+      # use 8Gi at least on production
+      size: 4Gi
   secondary:
+    nodeSelector:
+      kubernetes.io/hostname: desktop-worker
     persistence:
-      size: 4Gi # use 8Gi at least on production
+      # use 8Gi at least on production
+      size: 4Gi
   global:
     storageClass: standard

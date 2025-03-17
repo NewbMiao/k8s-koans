@@ -1,5 +1,6 @@
 #!/bin/bash
 
+NAMESPACE=dragonfly-system
 NODE_NAME=${2:-desktop-worker}
 IMAGE_NAME=${3:-debian}
 case $1 in
@@ -10,8 +11,8 @@ case $1 in
     ;;
 "poc")
     # setup the cluster-poc
-    kubectl apply -f cluster-poc.yaml
     kubectl apply -f test-secret.yaml -n poc
+    kubectl apply -f cluster-poc.yaml
     ;;
 "scale")
     count=${2:-3}
@@ -25,11 +26,11 @@ case $1 in
 "install")
     # install dragonfly
     echo "Note. install prometheus first if you want to use monitoring"
-    helm repo add dragonfly https://dragonflyoss.github.io/helm-charts/
-    helm upgrade --wait --create-namespace --namespace dragonfly-system dragonfly --install dragonfly/dragonfly -f values.yaml
     kubectl apply -f test-secret.yaml -n dragonfly-system
+    helm repo add dragonfly https://dragonflyoss.github.io/helm-charts/
+    helm upgrade --wait --create-namespace --namespace dragonfly-system dragonfly --install dragonfly/dragonfly -f values.yaml --version 1.3.15
     ;;
-"export_logs")
+"export_console_logs")
     mkdir -p logs
     kubectl get pods -n dragonfly-system -o custom-columns="NAMESPACE:.metadata.namespace,POD:.metadata.name" | tail -n +2 | while read ns pod; do
         echo "Fetching logs for $pod in namespace $ns"
@@ -37,6 +38,31 @@ case $1 in
     done
     # tar -czf all-k8s-logs.tar.gz logs/
     # echo "Logs are saved in all-k8s-logs.tar.gz"
+    ;;
+"export_logs")
+    mkdir -p dlogs
+    kubectl get pods -n $NAMESPACE -o name | grep dragonfly-scheduler | while read POD; do
+        POD_NAME=${POD#pod/}
+        echo "cp $POD_NAME:/var/log/dragonfly/scheduler/core.log dlogs/${POD_NAME}-core.log"
+        kubectl cp $POD_NAME:/var/log/dragonfly/scheduler/core.log dlogs/${POD_NAME}-core.log
+    done
+    kubectl get pods -n $NAMESPACE -o name | grep dragonfly-seed | while read POD; do
+        POD_NAME=${POD#pod/}
+        echo "cp $POD_NAME:/var/log/dragonfly/dfdaemon/dfdaemon.log dlogs/${POD_NAME}-dfdaemon.log"
+        kubectl cp $POD_NAME:/var/log/dragonfly/dfdaemon/dfdaemon.log dlogs/${POD_NAME}-dfdaemon.log
+    done
+
+    kubectl get pods -n $NAMESPACE -o name | grep dragonfly-manager | while read POD; do
+        POD_NAME=${POD#pod/}
+        echo "cp $POD_NAME:/var/log/dragonfly/manager/core.log dlogs/${POD_NAME}-core.log"
+        kubectl cp $POD_NAME:/var/log/dragonfly/manager/core.log dlogs/${POD_NAME}-core.log
+    done
+
+    kubectl get pods -n $NAMESPACE -o name | grep dragonfly-client | while read POD; do
+        POD_NAME=${POD#pod/}
+        echo "cp $POD_NAME:/var/log/dragonfly/dfdaemon/dfdaemon.log dlogs/${POD_NAME}-dfdaemon.log"
+        kubectl cp $POD_NAME:/var/log/dragonfly/dfdaemon/dfdaemon.log dlogs/${POD_NAME}-dfdaemon.log
+    done
     ;;
 "get_log")
     export POD_NAME=$(kubectl get pods --namespace dragonfly-system -l "app=dragonfly,release=dragonfly,component=client" -o=jsonpath='{.items[?(@.spec.nodeName=="'"$NODE_NAME"'")].metadata.name}' | head -n 1)
@@ -72,6 +98,6 @@ case $1 in
     time docker exec -i "$NODE_NAME" /usr/local/bin/crictl pull "$IMAGE_NAME"
     ;;
 *)
-    echo "Usage: $0 [init_cluster|poc|scale|metrics-server|install|export_logs|get_log|task_query|console|prometheus|grafana|pull]"
+    echo "Usage: $0 [init_cluster|poc|scale|metrics-server|install|export_console_logs|get_log|task_query|console|prometheus|grafana|pull]"
     ;;
 esac

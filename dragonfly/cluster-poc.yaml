@@ -34,7 +34,7 @@ spec:
         - name: test-secret
       containers:
         - name: app
-          image: alpine:3.18
+          image: alpine
           imagePullPolicy: IfNotPresent
           command:
             [
