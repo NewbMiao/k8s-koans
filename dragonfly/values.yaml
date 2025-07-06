@@ -139,7 +139,7 @@ client:
     enable: true
     image:
       repository: dragonflyoss/dfinit
-      tag: v0.2.19
+      tag: v0.2.42
     config:
       containerRuntime:
         containerd:
