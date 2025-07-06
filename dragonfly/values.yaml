@@ -64,7 +64,7 @@ seedClient:
   enable: true
   image:
     repository: dragonflyoss/client
-    tag: v0.2.19
+    tag: v0.2.42
   replicas: 3
   nodeSelector:
     kubernetes.io/hostname: desktop-worker
@@ -113,7 +113,7 @@ client:
   enable: true
   image:
     repository: dragonflyoss/client
-    tag: v0.2.19
+    tag: v0.2.42
   resources:
     requests:
       cpu: "0"
