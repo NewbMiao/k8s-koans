@@ -33,7 +33,7 @@ scheduler:
   enable: true
   image:
     repository: dragonflyoss/scheduler
-    tag: v2.2.1
+    tag: v2.5.1
   replicas: 3
   nodeSelector:
     kubernetes.io/hostname: desktop-worker
